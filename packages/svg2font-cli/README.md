@@ -17,6 +17,8 @@ For the programmatic TypeScript/napi API, see [`@jayson991/svg2font`](../svg2fon
 
 ## Installation
 
+### Via npm
+
 ```bash
 # Global CLI
 npm install -g @jayson991/svg2font-cli
@@ -27,6 +29,23 @@ pnpm add -g @jayson991/svg2font-cli
 # Or with yarn
 yarn global add @jayson991/svg2font-cli
 ```
+
+### Via curl (no npm)
+
+Install the pre-compiled native binary straight from the GitHub release — no Node.js or npm required:
+
+```bash
+curl -fsSL https://raw.githubusercontent.com/jaysonwu991/svg2font/main/scripts/install.sh | bash
+```
+
+The installer detects your OS and architecture, downloads the matching binary from the latest
+release, and adds it to your `PATH` (installed to `~/.svg2font/bin`). Environment overrides:
+
+| Variable | Description | Default |
+|----------|-------------|---------|
+| `SVG2FONT_HOME` | Install root directory | `~/.svg2font` |
+| `SVG2FONT_INSTALL_DIR` | Destination directory | `$SVG2FONT_HOME/bin` |
+| `SVG2FONT_VERSION` | Pin a release (e.g. `1.2.3` or `v1.2.3`) | latest |
 
 ## Quick Start
 

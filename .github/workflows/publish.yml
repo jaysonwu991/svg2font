@@ -88,27 +88,32 @@ jobs:
             os: macos-latest
             npm_pkg: darwin-arm64
             binary: svg2font
+            archive_ext: tar.gz
 
           - target: x86_64-apple-darwin
             os: macos-latest
             npm_pkg: darwin-x64
             binary: svg2font
+            archive_ext: tar.gz
 
           - target: x86_64-unknown-linux-gnu
             os: ubuntu-latest
             npm_pkg: linux-x64
             binary: svg2font
+            archive_ext: tar.gz
 
           - target: aarch64-unknown-linux-gnu
             os: ubuntu-latest
             npm_pkg: linux-arm64
             binary: svg2font
+            archive_ext: tar.gz
             use_cross: true
 
           - target: x86_64-pc-windows-msvc
             os: windows-latest
             npm_pkg: win32-x64
             binary: svg2font.exe
+            archive_ext: zip
 
     steps:
       - uses: actions/checkout@v4
@@ -130,11 +135,33 @@ jobs:
         if: "!matrix.use_cross"
         run: cargo build --release --target ${{ matrix.target }}
 
+      - name: Package release archive
+        shell: bash
+        run: |
+          set -euo pipefail
+          asset="svg2font-${GITHUB_REF_NAME}-${{ matrix.npm_pkg }}"
+          staged="$(mktemp -d)"
+          cp "target/${{ matrix.target }}/release/${{ matrix.binary }}" "${staged}/${{ matrix.binary }}"
+          cd "${staged}"
+          if [ "${{ matrix.archive_ext }}" = "zip" ]; then
+            zip -q "${asset}.zip" "${{ matrix.binary }}"
+            mv "${asset}.zip" "${GITHUB_WORKSPACE}/${asset}.zip"
+          else
+            tar -czf "${asset}.tar.gz" "${{ matrix.binary }}"
+            mv "${asset}.tar.gz" "${GITHUB_WORKSPACE}/${asset}.tar.gz"
+          fi
+
       - name: Upload CLI binary artifact
         uses: actions/upload-artifact@v4
         with:
           name: cli-${{ matrix.npm_pkg }}
           path: target/${{ matrix.target }}/release/${{ matrix.binary }}
+
+      - name: Upload CLI release asset
+        uses: actions/upload-artifact@v4
+        with:
+          name: asset-${{ matrix.npm_pkg }}
+          path: svg2font-${{ github.ref_name }}-${{ matrix.npm_pkg }}.${{ matrix.archive_ext }}
 
   # ─── WASM build ───────────────────────────────────────────────────────────────
   build-wasm:
@@ -172,6 +199,53 @@ jobs:
         with:
           name: svg2font-wasm
           path: packages/svg2font/wasm/
+
+  # ─── GitHub release assets (curl | bash install) ─────────────────────────────
+  release:
+    name: Attach release assets
+    needs: [build-cli, build-wasm]
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Download CLI release assets
+        uses: actions/download-artifact@v4
+        with:
+          pattern: asset-*
+          path: assets
+          merge-multiple: true
+
+      - name: Build svg2font-manifest
+        shell: bash
+        run: |
+          set -euo pipefail
+          ver="${{ github.ref_name }}"
+          {
+            printf 'version: %s\n' "${ver}"
+            for target in darwin-arm64 darwin-x64 linux-x64 linux-arm64 win32-x64; do
+              ext="tar.gz"
+              [ "$target" = "win32-x64" ] && ext="zip"
+              printf '%s: svg2font-%s-%s.%s\n' "${target}" "${ver}" "${target}" "${ext}"
+            done
+          } > svg2font-manifest
+          cat svg2font-manifest
+
+      - name: Create release (idempotent)
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh release view "${{ github.ref_name }}" --repo jaysonwu991/svg2font >/dev/null 2>&1 \
+            || gh release create "${{ github.ref_name }}" --repo jaysonwu991/svg2font \
+                 --title "${{ github.ref_name }}" --generate-notes
+
+      - name: Upload release assets
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          find assets -type f -exec gh release upload "${{ github.ref_name }}" --repo jaysonwu991/svg2font --clobber {} \;
+          gh release upload "${{ github.ref_name }}" --repo jaysonwu991/svg2font --clobber svg2font-manifest
 
   # ─── Publish ──────────────────────────────────────────────────────────────────
   publish:
