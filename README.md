@@ -22,6 +22,14 @@ npm install -g @jayson991/svg2font-cli
 svg2font --src "icons/**/*.svg" --dist dist --font-name myicons
 ```
 
+Or install the native CLI with a single curl pipeline (like Volta). No Node.js or npm needed — the installer detects your OS/architecture and downloads the right binary from the latest GitHub release:
+
+```bash
+curl -fsSL https://raw.githubusercontent.com/jaysonwu991/svg2font/main/scripts/install.sh | bash
+```
+
+The installer installs to `~/.svg2font/bin` and adds it to your `PATH`. Variables: `SVG2FONT_HOME` (install root), `SVG2FONT_INSTALL_DIR` (binary directory), and `SVG2FONT_VERSION` (pin a specific release).
+
 ### [@jayson991/svg2font](packages/svg2font/README.md)
 
 Import as a Node.js module:
