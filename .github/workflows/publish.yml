@@ -144,7 +144,7 @@ jobs:
           cp "target/${{ matrix.target }}/release/${{ matrix.binary }}" "${staged}/${{ matrix.binary }}"
           cd "${staged}"
           if [ "${{ matrix.archive_ext }}" = "zip" ]; then
-            zip -q "${asset}.zip" "${{ matrix.binary }}"
+            python -m zipfile -c "${asset}.zip" "${{ matrix.binary }}"
             mv "${asset}.zip" "${GITHUB_WORKSPACE}/${asset}.zip"
           else
             tar -czf "${asset}.tar.gz" "${{ matrix.binary }}"
